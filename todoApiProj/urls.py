@@ -7,4 +7,7 @@ urlpatterns = [
 
     # rest framework url
     path('api-auth/', include('rest_framework.urls')),
+
+    #frontend urls
+    path('', include('frontend.urls')),
 ]

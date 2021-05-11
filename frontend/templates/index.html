@@ -1,0 +1,282 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo with API</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-wEmeIV1mKuiNpC+IOBjI7aAzPcEZeedi5yW5f2yOq55WWLwNGmvvx4Um1vskeMj0" crossorigin="anonymous">
+
+
+
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+        }
+        body{
+            background: rgb(54, 217, 182);
+            font-family: sans-serif;
+        }
+
+        #task-container{
+            
+            max-width: 600px;
+            margin: auto;
+            margin-top: 50px;
+            background: whitesmoke;
+            height: auto;
+            padding: 60px 30px 60px 30px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #form{
+            width: 100%;
+            display: flex;
+            /* background: yellow; */
+        }
+        
+        .flex-wrapper{
+            display: flex;
+            /* background: white; */
+        }
+        
+        #title{
+            width: 100%;
+            height: 30px;
+        }
+
+        #submit{
+            width: 100%;
+            height: 30px;
+            background: rgb(20, 168, 148);
+            color: white;
+        }
+
+        .task-wrapper{
+            margin: 5px;
+            padding: 5px;
+            padding: 20px;
+            cursor: pointer;
+            border-bottom: 1px solid #e9e9e9;
+            color: #686868;
+        }
+
+        .flex-wrapper{
+            display: flex;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <div id="task-container">
+
+            <div id="flex-wrapper">
+                <form id="form">
+                    <div style="flex: 6">
+                        <input type="text" id="title" placeholder="Add Task"> 
+                    </div>
+                    
+                    <div style="flex: 1">
+                        <input type="submit" value="Submit" class="btn" id="submit">
+                    </div>
+                </form>               
+                
+            </div>
+
+
+            <div id="list-wrapper">
+               
+            </div>
+        </div>
+        
+    </div>
+<!-- 
+    "INFO": "HOW TO USE THIS API",
+    "-----------------": "---------------------------",
+    "List all Task": "list-task/",
+    "View details of one task": "view-task/<int:pk>",
+    "Create a new task": "create-task/",
+    "Update an existing task": "update-task/<int:pk>",
+    "Delete an existing task": "delete-task/<int:pk>" -->
+
+    <script type="text/javascript">
+
+
+    // csrf-token for putting and posting taks
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    var activeItem = null;
+
+
+    // funtion for oulling all the data
+
+    buildlist()
+
+    function buildlist(){
+        var wrapper = document.getElementById('list-wrapper')
+        wrapper.innerHTML = ''
+        var url = 'http://127.0.0.1:8000/api/list-task/'
+
+        fetch(url)
+        .then(
+            (resp)=>resp.json()
+        )
+        .then(
+            function(data){
+                console.log('Data:', data)
+
+                // render out all the data
+                
+                var list = data
+                
+                for (var i in list){
+                    var title = `<span class="title">${list[i].title}</span>`
+                    if (list[i].completed == true){
+                        title = `<strike class="title">${list[i].title}</strike>`
+                    }
+                    var item = `
+                        <div id="data-row-${i}" class="task-wrapper flex-wrapper">
+                            <div style="flex:7">
+                                ${title}
+                            </div>
+                            <div style="flex:1">
+                                <button class="btn btn-sm btn-outline-info edit">Edit</button>
+                            </div>
+                            <div style="flex:1">
+                                <button class="btn btn-sm btn-outline-dark delete">-</button>
+                            </div>
+                        </div>
+                    
+                    `
+                    wrapper.innerHTML += item
+                }
+
+                for (var i in list){
+                    var editButton = document.getElementsByClassName('edit')[i]
+                    var deleteButton = document.getElementsByClassName('delete')[i]
+                    var title = document.getElementsByClassName('title')[i]
+
+                    editButton.addEventListener('click', (function(item){
+                        return function(){
+                            editTask(item)
+                        }
+                    })(list[i]))
+
+                    deleteButton.addEventListener('click', (function(item){
+                        return function(){
+                            deleteTask(item)
+                        }
+                    })(list[i]))
+
+                    title.addEventListener('click', (function(item){
+                        return function(){
+                            strikeUnstrike(item)
+                        }
+                    })(list[i]))
+                }
+            }
+        )
+    }
+
+
+
+    // function for creating a new task
+    var form = document.getElementById('flex-wrapper')
+    form.addEventListener('submit', function(e){
+        e.preventDefault()
+
+        // the endpoint for creating a new task
+        var url = 'http://127.0.0.1:8000/api/create-task/'
+        var activeMethod = 'POST'
+
+        if (activeItem != null){
+            var url = `http://127.0.0.1:8000/api/update-task/${activeItem.id}`
+            activeItem = null
+            activeMethod = 'PUT'
+        }
+
+        // grab the task from the  value of the input bar with the id of title
+        var title = document.getElementById('title').value
+        
+        // use fetch to call the endpoint and parse in the title
+        //  then, build the list again
+        fetch(url, {
+            method:activeMethod,
+            headers:{
+                'Content-type':'application/json',
+                'X-CSRFToken' : csrftoken,
+            },
+            body:JSON.stringify({'title':title})
+        }).then(function(response){
+            buildlist()  //build list again after using api to create data
+            document.getElementById('form').reset() //reset the form so that the input fields will be empty
+        })
+    })
+    
+
+
+    // editing items on the list
+    function editTask(item){
+        console.log('Item Clicked', item)
+        activeItem = item
+        document.getElementById('title').value = activeItem.title
+    }
+    
+    
+    // funtion for deleting items
+    function deleteTask(item){
+        var url = `http://127.0.0.1:8000/api/delete-task/${item.id}`
+        fetch(url, {
+            method :'DELETE',
+            headers:{
+                'Content-type': 'application/json',
+                'X-CSRFToken': csrftoken,
+            }
+        }).then((response)=>{
+            buildlist()
+        })
+        
+    }
+
+
+    //funtion fot striking and unstriking
+    function strikeUnstrike(item){
+        console.log('strike and unstrike')
+        var url = `http://127.0.0.1:8000/api/update-task/${item.id}`
+        item.completed = !item.completed
+        fetch(url, {
+            method :'PUT',
+            headers:{
+                'Content-type': 'application/json',
+                'X-CSRFToken': csrftoken,
+            },
+            body:JSON.stringify({
+                'title': item.title,
+                'completed': item.completed
+            })
+        }).then((response)=>{
+            buildlist()
+        })
+    }
+
+    </script>
+</body>
+</html>
