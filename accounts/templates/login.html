@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+    <h2 class="page-title">Login</h2>
+                    
+    <form id="form" method="POST">
+        {% csrf_token %}
+        <div style="flex: 6">
+            <input type="text" id="username" placeholder="username"  name="username"> 
+        </div>
+            <br>
+        <div style="flex: 6">
+            <input type="password" id="password" placeholder="password" name="password"> 
+        </div>
+            <br>
+        <div style="flex: 6">
+            <input type="submit" id="submit" value="Login" > 
+        </div>
+
+        <p style="margin-left: auto; margin-top: 5px;">Don't have an account?   <a href="{% url 'register' %}">   Sign Up</a></p>
+
+        
+        {% for message in messages %}
+            {{ message }}
+        {% endfor %}
+            
+    </form> 
+{% endblock content %}

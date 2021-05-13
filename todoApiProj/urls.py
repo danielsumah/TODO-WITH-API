@@ -10,4 +10,7 @@ urlpatterns = [
 
     #frontend urls
     path('', include('frontend.urls')),
+
+    #accounts url
+    path('', include('accounts.urls')),
 ]
